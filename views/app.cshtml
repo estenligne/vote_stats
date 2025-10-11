@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="@Page.Language">
+
+<head>
+	<title>@Page.HeadTitle</title>
+
+	@var og = Page.OpenGraph;
+	@if (og != null)
+	{
+		<meta charset="UTF-8">
+		<meta name="description" content="@og.Description">
+
+		<meta property="og:type" content="@og.Type" />
+		<meta property="og:title" content="@og.Title" />
+		<meta property="og:description" content="@og.Description" />
+		<meta property="og:image" content="@og.Image" />
+		<meta property="og:url" content="@og.URL" />
+
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:title" content="@og.Title">
+		<meta name="twitter:description" content="@og.Description">
+		<meta name="twitter:image" content="@og.Image">
+		<meta name="twitter:url" content="@og.URL">
+	}
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="black">
+
+	<link rel="apple-touch-icon" href="/icons/logo-192x192.png" />
+	<link rel="manifest" href="/manifest.json">
+
+	<link rel="stylesheet" href="/lib/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="/lib/bootstrap/bootstrap-icons.min.css">
+	<link rel="stylesheet" href="/spart/spart.css?v=1.0">
+	<link rel="stylesheet" href="/css/login.css?v=1.0">
+	<link rel="stylesheet" href="/css/home.css?v=1.0">
+	<link rel="stylesheet" href="/css/add.css?v=1.0">
+
+	<script defer src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+	<script defer src="/js/svg.js?v=1.2"></script>
+
+	<script type="importmap">
+	{
+		"imports": {
+			"spart": "/spart/spart.js?v=1.0",
+			"fetch": "/spart/fetch.js?v=1.0",
+			"pages": "/spart/pages.js?v=1.0",
+			"i18n": "/spart/i18n.js?v=1.0",
+			"store": "/js/store.js?v=1.0",
+			"login": "/js/login.js?v=1.0",
+			"home": "/js/home.js?v=1.0",
+			"add": "/js/add.js?v=1.0"
+		}
+	}
+	</script>
+
+	<script type="module">
+		import { initializeApp } from 'login';
+
+		await initializeApp({
+			isProgressiveWebApp: true,
+			i18nAssetsVersion: "1.2"
+		});
+
+		document.getElementById("app-loading-indicator").hidden = true;
+
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register("/sw.js")
+				.then(reg => console.debug("Ready!"))
+				.catch(err => console.error("SW registration failed:", err));
+		}
+	</script>
+</head>
+
+<body>
+	<noscript>You need to enable JavaScript to run this app.</noscript>
+	<div id="app-loading-indicator" class="loading-spinner"></div>
+	<main class="spa-container"></main>
+</body>
+
+</html>

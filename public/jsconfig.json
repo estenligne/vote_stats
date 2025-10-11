@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"store": [
+				"js/store.js"
+			],
+			"home": [
+				"js/home.js"
+			],
+			"spart": [
+				"spart/spart.js"
+			],
+			"fetch": [
+				"spart/fetch.js"
+			],
+			"pages": [
+				"spart/pages.js"
+			],
+			"i18n": [
+				"spart/i18n.js"
+			]
+		}
+	},
+	"include": [
+		"./**/*.js"
+	]
+}
