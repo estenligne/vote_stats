@@ -1,4 +1,5 @@
 {
+	"site description": "Contribuez au suivi des élections et découvrez les tendances en temps réel.",
 	"Failed to check session existence": "Échec de la vérification de l'existence de la session",
 	"Failed to create user entry": "Échec de la création de l'entrée utilisateur",
 	"Failed to recreate user session": "Échec de la recréation de la session utilisateur",

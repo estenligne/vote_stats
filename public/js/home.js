@@ -1,27 +1,89 @@
 import store from 'store';
 import { openPage } from 'pages';
 import { currentLanguage, changeLanguage } from 'i18n';
-import { updateElement } from 'spart';
+import { newBusyToast, removeToast, updateElement } from 'spart';
 import { _fetch, showProblemDetail } from 'fetch';
 
 let page_content = null;
+let refreshBtn = {};
+
+function submitResults() {
+	console.debug("submit results");
+}
 
 function setData(data) {
 	if (data == null) {
 		return fetchData();
 	}
-	page_content.innerHTML = "Hello Word!\n\n" + JSON.stringify(data);
+
+	let sum = 0;
+	data.data.forEach((x) => sum += x.votes);
+
+	const results = data.data.map((x) => ({
+		tag: "tr",
+		content: [
+			{ html: x.name },
+			{ html: x.party },
+			{ html: x.votes },
+			{ html: sum ? (x.votes * 100 / sum).toFixed(2) : null }
+		]
+	}));
+
+	results.unshift({
+		tag: "tr",
+		content: [
+			{ tag: "th", text: "Candidate" },
+			{ tag: "th", text: "Party" },
+			{ tag: "th", text: "Votes" },
+			{ tag: "th", html: "%" }
+		]
+	});
+	
+	results.push({
+		tag: "tr",
+		style: "font-weight: bold",
+		content: [
+			{ text: "Total" },
+			{ html: null },
+			{ html: sum },
+			{ html: sum ? 100 : null }
+		]
+	});
+
+	const content = [
+		{
+			tag: "table",
+			class: "vote-results",
+			content: results
+		},
+		{
+			tag: "p", class: "submit-results",
+			content: [{
+				tag: "button",
+				class: "btn btn-success",
+				text: "Submit results",
+				events: { click: submitResults }
+			}]
+		}
+	];
+	updateElement(page_content, { content });
 }
 
 async function fetchData() {
+	const busy = newBusyToast();
+	refreshBtn.classList.add("disabled");
+
 	const response = await _fetch("/api/home/info");
+	const data = await response.json();
+
+	removeToast(busy);
+	refreshBtn.classList.remove("disabled");
 
 	if (!response.ok) {
 		showProblemDetail(response);
 		return []; // pretend an empty list
 	}
 
-	const data = await response.json();
 	store.putData(data);
 	setData(data);
 }
@@ -34,19 +96,38 @@ async function openHomePage() {
 	page.addEventListener("page-back", fetchData);
 	page.classList.add("flex-column");
 
+	const right_items = [
+		{
+			tag: "i",
+			class: "refresh-button bi bi-arrow-clockwise",
+			title: "Refresh data",
+			events: { click: fetchData },
+			callback: (elem) => refreshBtn = elem
+		},
+		/*{
+			tag: "i",
+			class: "bi bi-three-dots-vertical",
+			events: { click: showMenu }
+		}*/
+		{
+			tag: "select", class: "app-language",
+			props: { value: currentLanguage },
+			events: { "change": (e) => changeLanguage(e.target.value)},
+			content: [
+				{ value: "en", html: "EN" },
+				{ value: "fr", html: "FR" }
+			]
+		}
+	];
+
 	const content = [
 		{
 			tag: "div", class: "page-header",
 			content: [
 				{ tag: "span", html: "Vote Stats" },
 				{
-					tag: "select", class: "app-language",
-					props: { value: currentLanguage },
-					events: { "change": (e) => changeLanguage(e.target.value)},
-					content: [
-						{ value: "en", html: "EN" },
-						{ value: "fr", html: "FR" }
-					]
+					tag: "div", style: "float: right",
+					content: right_items
 				}
 			]
 		},
