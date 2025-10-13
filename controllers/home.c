@@ -86,7 +86,7 @@ static apr_status_t get_home_info(HttpContext *c)
 	query.sql =
 		"select c.Id, c.Name, c.Party, SUM(ov.Votes) as Votes\n"
 		"from Candidates c\n"
-		"left join OfficeVotes ov on ov.CandidateId = c.Id\n"
+		"left join StationVotes ov on ov.CandidateId = c.Id\n"
 		"where c.ElectionId = ?\n"
 		"group by c.Id, c.Name\n"
 		"order by Votes desc, Name\n";
@@ -141,7 +141,7 @@ static apr_status_t voting_results(HttpContext *c)
 	struct elec_info elec;
 	elec.c = c;
 	get_election_id(&elec);
-	return http_problem(c, NULL, "Not yet implemented", 501);
+	return save_voting_results(c, elec.id);
 }
 
 void register_home_controller(void)

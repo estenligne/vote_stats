@@ -3,6 +3,7 @@ OUT_DIR = build/
 
 OBJECT_FILES =\
 	$(OUT_DIR)startup.o \
+	$(OUT_DIR)controllers/add.o \
 	$(OUT_DIR)controllers/home.o \
 	$(OUT_DIR)controllers/account.o
 

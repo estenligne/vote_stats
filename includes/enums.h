@@ -1,6 +1,17 @@
 #ifndef _ENUMS_H_
 #define _ENUMS_H_
 
+enum LocationType
+{
+	LocationType_Unknown = 0,
+	LocationType_Continent = 1,
+	LocationType_Country = 2,
+	LocationType_Region = 3,
+	LocationType_Department = 4,
+	LocationType_District = 5,
+	LocationType_City = 6,
+};
+
 enum PlatformType
 {
 	PlatformType_Unknown = 0,

@@ -1,5 +1,5 @@
 import { openPage } from 'pages';
-import { newBusyToast, removeToast, updateElement } from 'spart';
+import { toast, newBusyToast, removeToast, updateElement } from 'spart';
 import { _fetch, sendForm, showProblemDetail } from 'fetch';
 
 function submitForm(e) {
@@ -20,7 +20,7 @@ function submitForm(e) {
 			}
 			else {
 				toast("Data submitted", 1);
-				window.navigator.back();
+				window.history.back();
 			}
 		});
 
@@ -35,6 +35,39 @@ function getBackBtn() {
 	};
 }
 
+function updateAbsentees(form) {
+	const numberOfVoters = Number(form.querySelector("#numberOfVoters").value);
+	const invalidVotes = Number(form.querySelector("#invalidVotes").value);
+	const totalVotes = Number(form.querySelector("#totalVotes").innerText);
+	const absentees = form.querySelector("#absentees");
+
+	if (numberOfVoters && totalVotes)
+		absentees.textContent = numberOfVoters - (invalidVotes + totalVotes);
+	else absentees.textContent = "";
+}
+
+function onVotesChanged(e) {
+	const form = e.target.closest('form');
+	const inputs = form.querySelectorAll('input.candidate');
+
+	let total = 0;
+	inputs.forEach(input => total += Number(input.value));
+
+	const totalVotes = form.querySelector("#totalVotes");
+	totalVotes.textContent = total ? total : "";
+	updateAbsentees(form);
+}
+
+function onNumberOfVoters(e) {
+	const form = e.target.closest('form');
+	updateAbsentees(form);
+}
+
+function onInvalidVotes(e) {
+	const form = e.target.closest('form');
+	updateAbsentees(form);
+}
+
 async function openAddPage(data) {
 	const page = openPage("add");
 	if (page.childElementCount)
@@ -43,7 +76,7 @@ async function openAddPage(data) {
 
 	let page_content = null;
 
-	const content = [
+	let content = [
 		{
 			tag: "div", class: "page-header",
 			content: [
@@ -58,49 +91,67 @@ async function openAddPage(data) {
 	];
 	updateElement(page, { content });
 
-	const form_content = [
-		{ tag: "label", for: "region", text: "Region" },
-		{ tag: "input", id: "region", name: "region", class: "form-control", required: true, maxlength: "127" },
+	data.regions = [
+		"", "Adamaoua", "Centre", "Est", "Extrême-Nord", "Littoral",
+		"Nord", "Nord-Ouest", "Ouest", "Sud", "Sud-Ouest", "Abroad"
+	].map((x) => ({ value: x, text: x }));
 
-		{ tag: "label", for: "departement", text: "Departement" },
-		{ tag: "input", id: "departement", name: "departement", class: "form-control", required: true, maxlength: "127" },
-
-		{ tag: "label", for: "arrondissement", text: "Arrondissement" },
-		{ tag: "input", id: "arrondissement", name: "arrondissement", class: "form-control", required: true, maxlength: "127" },
-
-		{ tag: "label", for: "center-name", text: "Polling Center" },
-		{ tag: "input", id: "center-name", name: "pollingCenter", class: "form-control", required: true, maxlength: "127" },
-
-		{ tag: "label", for: "center-code", text: "Center Number" },
-		{ tag: "input", id: "center-code", name: "centerNumber", class: "form-control", required: true, min: "1", type: "number" },
-
-		{ tag: "label", for: "polling-room", text: "Inner polling room" },
-		{ tag: "input", id: "polling-room", name: "pollingRoom", class: "form-control", required: true, maxlength: "15" },
-
-		{ tag: "label", for: "photo-results", text: "Photo Results" },
-		{
-			tag: "input", id: "photo-results", name: "photoResults", class: "form-control", required: true,
-			type: "file", accept: "image/*", capture: "rear"
-		},
-
-		{ tag: "span" },
-		{ tag: "span", text: "Votes:" }
-	];
-
+	const candidates = [];
 	data.candidates.forEach((c) => {
 		const id = "candidate_" + c.id;
-		form_content.push({ tag: "label", for: id, html: c.name });
-		form_content.push({
-			tag: "input",
-			id: id,
-			name: id,
-			class: "form-control",
-			type: "number",
-			min: "0"
+		candidates.push({ tag: "label", for: id, html: c.name });
+		candidates.push({
+			tag: "input", id: id, name: id,
+			class: "form-control candidate",
+			type: "number", min: "0",
+			events: { change: onVotesChanged }
 		});
 	});
 
-	updateElement(page_content, { content: [{
+	const form_content = [
+		{ tag: "label", for: "form-region", text: "Region" },
+		{ tag: "select", id: "form-region", name: "region", class: "form-control", required: true, content: data.regions },
+
+		{ tag: "label", for: "department", text: "Department" },
+		{ tag: "input", id: "department", name: "department", class: "form-control", required: true, maxlength: "127" },
+
+		{ tag: "label", for: "district", text: "District" },
+		{ tag: "input", id: "district", name: "district", class: "form-control", required: true, maxlength: "127" },
+
+		{ tag: "label", for: "pollingCenter", text: "Polling Center" },
+		{ tag: "input", id: "pollingCenter", name: "pollingCenter", class: "form-control", required: true, maxlength: "127" },
+
+		{ tag: "label", for: "centerNumber", text: "Center Number" },
+		{ tag: "input", id: "centerNumber", name: "centerNumber", class: "form-control", required: true, min: "1", type: "number" },
+
+		{ tag: "label", for: "pollingStation", text: "Polling Station" },
+		{ tag: "input", id: "pollingStation", name: "pollingStation", class: "form-control", required: true, maxlength: "15" },
+
+		{ tag: "span" },
+		{ tag: "i", text: "Upload a .pdf, .zip or .tar.gz file" },
+
+		{ tag: "label", for: "resultsDocument", text: "Results Document" },
+		{
+			tag: "input", id: "resultsDocument", name: "resultsDocument", class: "form-control", required: true,
+			type: "file", accept: "application/pdf,application/zip,application/x-tar,application/gzip"
+		},
+
+		{ tag: "label", for: "numberOfVoters", text: "Number of Voters" },
+		{ tag: "input", id: "numberOfVoters", name: "numberOfVoters", class: "form-control", required: true, min: "0", type: "number", events: { change: onNumberOfVoters } },
+
+		{ tag: "label", for: "invalidVotes", text: "Invalid Votes" },
+		{ tag: "input", id: "invalidVotes", name: "invalidVotes", class: "form-control", min: "0", type: "number", events: { change: onInvalidVotes } },
+
+		...candidates,
+
+		{ tag: "b", text: "Total Votes" },
+		{ tag: "b", id: "totalVotes" },
+
+		{ tag: "span", text: "Absents Voters" },
+		{ tag: "span", id: "absentees" }
+	];
+
+	content = [{
 		tag: "form",
 		"data-id": data.id,
 		events: { submit: submitForm },
@@ -110,14 +161,16 @@ async function openAddPage(data) {
 				content: form_content
 			},
 			{
-				tag: "div", class: "text-center mt-3",
+				tag: "div",
+				style: "text-align: center; margin-top: 1em",
 				content: [{
 					tag: "button", type: "submit",
 					class: "btn btn-primary", text: "Submit"
 				}]
 			}
 		]
-	}] });
+	}];
+	updateElement(page_content, { content });
 }
 
 export default openAddPage;

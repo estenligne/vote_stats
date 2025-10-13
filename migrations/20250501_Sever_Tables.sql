@@ -1,57 +1,78 @@
 
 CREATE TABLE Elections (
 	Id INT PRIMARY KEY AUTO_INCREMENT,
+
 	CountryId BIGINT NOT NULL,
 	Title VARCHAR(127) NOT NULL,
 	Description TEXT NULL,
-	StartDate TIMESTAMP NOT NULL,
+
 	DateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	StartDate TIMESTAMP NOT NULL,
+
 	FOREIGN KEY (CountryId) REFERENCES Locations(Id) ON DELETE CASCADE
 );
 
 CREATE TABLE Candidates (
 	Id INT PRIMARY KEY AUTO_INCREMENT,
 
+	ElectionId INT NOT NULL,
 	Name VARCHAR(127) NOT NULL,
 	Party VARCHAR(127) NOT NULL,
 
-	ElectionId INT NOT NULL,
 	DateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-	UNIQUE KEY UQ_Canditates_CountryId_Name (ElectionId, Name),
+	UNIQUE KEY UQ_Canditates_ElectionId_Name (ElectionId, Name),
 	FOREIGN KEY (ElectionId) REFERENCES Elections(Id) ON DELETE CASCADE
 );
 
-CREATE TABLE VotingOffices (
+CREATE TABLE PollingCenters (
 	Id INT PRIMARY KEY AUTO_INCREMENT,
 
 	ElectionId INT NOT NULL,
-	Code INT NOT NULL,
-	Room VARCHAR(15) NOT NULL,
+	Number INT NOT NULL,
 	Name VARCHAR(127) NOT NULL,
 
-	LocationId BIGINT NULL,
+	FOREIGN KEY (ElectionId) REFERENCES Elections(Id) ON DELETE CASCADE,
+	UNIQUE KEY UQ_PollingCenters_ElectionId_Number (ElectionId, Number)
+);
+
+CREATE TABLE PollingStations (
+	Id INT PRIMARY KEY AUTO_INCREMENT,
+
+	PollingCenterId INT NOT NULL,
+	Name VARCHAR(15) NOT NULL,
+
+	LocationId BIGINT NOT NULL,
 	DateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-	FOREIGN KEY (ElectionId) REFERENCES Elections(Id) ON DELETE CASCADE,
-	FOREIGN KEY (LocationId) REFERENCES Locations(Id) ON DELETE SET NULL,
-	UNIQUE KEY UQ_VotingOffices_ElectionId_Code_Room (ElectionId, Code, Room)
+	FOREIGN KEY (LocationId) REFERENCES Locations(Id),
+	FOREIGN KEY (PollingCenterId) REFERENCES PollingCenters(Id) ON DELETE CASCADE,
+
+	UNIQUE KEY UQ_PollingStations_PollingCenterId_Name (PollingCenterId, Name)
 );
 
 CREATE TABLE Submissions (
 	Id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-	VotingOfficeId INT NOT NULL,
+	PollingStationId INT NOT NULL,
 	SessionId BIGINT NOT NULL, -- use Session.Location for Geolocation
-	FileId BIGINT NOT NULL, -- a photo of the results being submitted
+	FileId BIGINT NOT NULL, -- a document of the results being submitted
+
+	NumberOfVoters INT NOT NULL,
+	InvalidVotes INT NOT NULL,
 
 	DateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	DateUpdated TIMESTAMP NULL,
 	DateDeleted TIMESTAMP NULL,
 
-	FOREIGN KEY (FileId) REFERENCES Files(Id) ON DELETE CASCADE,
+	DateValidated TIMESTAMP NULL, -- null means not yet validated
+	ValidatorId BIGINT NULL, -- null means not yet validated
+	ValidatorNotes TEXT NULL,
+
+	FOREIGN KEY (PollingStationId) REFERENCES PollingStations(Id) ON DELETE CASCADE,
 	FOREIGN KEY (SessionId) REFERENCES Sessions(Id) ON DELETE CASCADE,
-	FOREIGN KEY (VotingOfficeId) REFERENCES VotingOffices(Id) ON DELETE CASCADE
+	FOREIGN KEY (FileId) REFERENCES Files(Id),
+	FOREIGN KEY (ValidatorId) REFERENCES Sessions(Id)
 );
 
 CREATE TABLE SubmittedVotes (
@@ -66,10 +87,10 @@ CREATE TABLE SubmittedVotes (
 	UNIQUE KEY UQ_SubmittedVotes_SubmissionId_CandidateId (SubmissionId, CandidateId)
 );
 
-CREATE VIEW OfficeVotes AS
+CREATE VIEW StationVotes AS
 SELECT vo.Id, sv.CandidateId, AVG(Votes) as Votes
-FROM VotingOffices vo
-JOIN Submissions s on s.VotingOfficeId = vo.Id
+FROM PollingStations vo
+JOIN Submissions s on s.PollingStationId = vo.Id
 JOIN SubmittedVotes sv on sv.SubmissionId = s.Id
 GROUP BY vo.Id, sv.CandidateId;
 
