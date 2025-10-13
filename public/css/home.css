@@ -47,15 +47,20 @@ body {
 }
 
 .vote-results {
+	margin: 1em 0;
 	width: 100%;
 }
 
 .vote-results th {
-	width: 33.3%;
+	/* width: 25%; */
 }
 
 .vote-results td {
 	border-top: 1px solid black;
+}
+
+.vote-results th, .vote-results td {
+	padding: 8px 4px;
 }
 
 .submit-results {

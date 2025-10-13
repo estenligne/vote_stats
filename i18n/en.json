@@ -1,3 +1,4 @@
 {
-	"site description": "Contribute to election monitoring and discover real-time trends."
+	"site description": "Contribute to election monitoring and discover real-time trends.",
+	"SQL error": "Internal error: failed to get data"
 }

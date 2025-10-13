@@ -8,6 +8,9 @@
 			"home": [
 				"js/home.js"
 			],
+			"add": [
+				"js/add.js"
+			],
 			"spart": [
 				"spart/spart.js"
 			],

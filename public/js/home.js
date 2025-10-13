@@ -1,5 +1,6 @@
 import store from 'store';
-import { openPage } from 'pages';
+import openPage from 'pages';
+import openAddPage from 'add';
 import { currentLanguage, changeLanguage } from 'i18n';
 import { newBusyToast, removeToast, updateElement } from 'spart';
 import { _fetch, showProblemDetail } from 'fetch';
@@ -7,19 +8,15 @@ import { _fetch, showProblemDetail } from 'fetch';
 let page_content = null;
 let refreshBtn = {};
 
-function submitResults() {
-	console.debug("submit results");
-}
-
 function setData(data) {
 	if (data == null) {
 		return fetchData();
 	}
 
 	let sum = 0;
-	data.data.forEach((x) => sum += x.votes);
+	data.candidates.forEach((x) => sum += x.votes);
 
-	const results = data.data.map((x) => ({
+	const results = data.candidates.map((x) => ({
 		tag: "tr",
 		content: [
 			{ html: x.name },
@@ -52,9 +49,10 @@ function setData(data) {
 
 	const content = [
 		{
-			tag: "table",
-			class: "vote-results",
-			content: results
+			tag: "div", html: data.title
+		},
+		{
+			tag: "table", class: "vote-results", content: results
 		},
 		{
 			tag: "p", class: "submit-results",
@@ -62,7 +60,7 @@ function setData(data) {
 				tag: "button",
 				class: "btn btn-success",
 				text: "Submit results",
-				events: { click: submitResults }
+				events: { click: () => openAddPage(data) }
 			}]
 		}
 	];
@@ -73,7 +71,10 @@ async function fetchData() {
 	const busy = newBusyToast();
 	refreshBtn.classList.add("disabled");
 
-	const response = await _fetch("/api/home/info");
+	const params = new URLSearchParams(window.location.search);
+	const id = Number(params.get('id')) || 1;
+
+	const response = await _fetch("/api/home-info?id=" + id);
 	const data = await response.json();
 
 	removeToast(busy);
@@ -125,10 +126,7 @@ async function openHomePage() {
 			tag: "div", class: "page-header",
 			content: [
 				{ tag: "span", html: "Vote Stats" },
-				{
-					tag: "div", style: "float: right",
-					content: right_items
-				}
+				{ tag: "div", style: "float: right", content: right_items }
 			]
 		},
 		{

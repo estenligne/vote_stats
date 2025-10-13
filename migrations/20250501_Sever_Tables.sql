@@ -27,7 +27,7 @@ CREATE TABLE VotingOffices (
 
 	ElectionId INT NOT NULL,
 	Code INT NOT NULL,
-	Room INT NOT NULL,
+	Room VARCHAR(15) NOT NULL,
 	Name VARCHAR(127) NOT NULL,
 
 	LocationId BIGINT NULL,

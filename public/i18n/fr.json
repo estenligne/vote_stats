@@ -22,6 +22,12 @@
 	"Percentage": "Pourcentage",
 	"Refresh data": "Actualiser les données",
 	"Submit results": "Soumettre les résultats",
+	"Submit": "Soumettre",
+	"Data submitted": "Données soumises",
+	"Center Number": "Numero du Centre",
+	"Polling Center": "Centre de Vote",
+	"Inner polling room": "Salle de vote intérieure",
+	"Photo Results": "Photo des Résultats",
 	"Failed to copy the message": "Échec de la copie du message",
 	"An error has occurred": "Une erreur s’est produite"
 }
