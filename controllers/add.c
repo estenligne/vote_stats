@@ -1,7 +1,13 @@
 #include "base.h"
 
+#define SIZEOF(x) (sizeof(x) / sizeof((x)[0]))
+
+static inline bool ISERR(errno_t e) { return e != 0; }
+static inline errno_t ASERR(int e) { return e; }
+
 struct submit
 {
+	HttpContext *c;
 	const char *region;
 	const char *department;
 	const char *district;
@@ -11,8 +17,13 @@ struct submit
 	const char *pollingStation;
 
 	int numberOfVoters;
-	int invalidVoters;
+	int invalidVotes;
 	FormData resultsDocument;
+
+	int centerId;
+	int stationId;
+	row_id_t locationId;
+	row_id_t submissionId;
 };
 
 struct results
@@ -21,18 +32,196 @@ struct results
 	int votes;
 };
 
-#define SIZEOF(x) (sizeof(x) / sizeof((x)[0]))
-
-apr_status_t save_voting_results(HttpContext *c, int elecId)
+static errno_t int_result_callback(DbResult r)
 {
-	long sessionId = str_to_long(c->identity.sid);
+	CHECK_SQL_CALLBACK(1);
+	int *id = r.context;
+	*id = str_to_int(r.argv[0]);
+	return OK;
+}
 
-	if (get_request_body(c) != 0)
-		return http_problem(c, NULL, tl("Failed to read the request body"), 500);
+static errno_t get_station_location(Charray *buffer, struct submit *s)
+{
+	s->locationId = 2;
+	return OK;
+}
 
-	struct results res[80];
-	int candidates = 0;
-	struct submit s = {0};
+static errno_t get_polling_center(Charray *buffer, struct submit *s, int electionId)
+{
+	DbQuery query = {.dbc = &s->c->dbc};
+	query.sql = "SELECT id FROM PollingCenters WHERE ElectionId = ? AND Number = ?";
+	query.callback = int_result_callback;
+	query.callback_context = &s->centerId;
+
+	JsonValue argv[4];
+	argv[query.argc++] = json_new_int(electionId, false);
+	argv[query.argc++] = json_new_int(s->centerNumber, false);
+
+	errno_t e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+
+	if (s->centerId != 0)
+		return OK;
+
+	query.sql = "INSERT INTO PollingCenters (ElectionId, Number, Name) VALUES (?, ?, ?)";
+	argv[query.argc++] = json_new_str(s->pollingCenter, false);
+
+	query.callback = NULL;
+	query.int_insert_id = &s->centerId;
+
+	e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+	return e;
+}
+
+static errno_t get_polling_station(Charray *buffer, struct submit *s)
+{
+	DbQuery query = {.dbc = &s->c->dbc};
+	query.sql = "SELECT id FROM PollingStations WHERE PollingCenterId = ? AND Name = ?";
+	query.callback = int_result_callback;
+	query.callback_context = &s->stationId;
+
+	JsonValue argv[4];
+	argv[query.argc++] = json_new_int(s->centerId, false);
+	argv[query.argc++] = json_new_str(s->pollingStation, false);
+
+	errno_t e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+
+	if (s->stationId != 0)
+		return OK;
+
+	query.sql = "INSERT INTO PollingStations (PollingCenterId, Name, LocationId) VALUES (?, ?, ?)";
+
+	e = get_station_location(buffer, s);
+	if (ISERR(e))
+		return e;
+	argv[query.argc++] = json_new_long(s->locationId, false);
+
+	query.callback = NULL;
+	query.int_insert_id = &s->stationId;
+
+	e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+	return e;
+}
+
+static errno_t submission_callback(DbResult r)
+{
+	CHECK_SQL_CALLBACK(1);
+	row_id_t *id = r.context;
+	*id = str_to_long(r.argv[0]);
+	return OK;
+}
+
+static errno_t save_submission(Charray *buffer, struct submit *s)
+{
+	errno_t e = OK;
+	row_id_t sessionId = str_to_long(s->c->identity.sid);
+
+	UploadFile file = {.data = s->resultsDocument, .sessionId = sessionId, .folder = "submissions"};
+	e = complete_file_upload(&s->c->dbc, &file, buffer);
+	if (ISERR(e))
+		return e;
+
+	DbQuery query = {.dbc = &s->c->dbc};
+	query.sql = "SELECT id FROM Submissions WHERE PollingStationId = ? AND SessionId = ?";
+
+	query.callback = submission_callback;
+	query.callback_context = &s->submissionId;
+
+	JsonValue argv[6];
+	argv[query.argc++] = json_new_int(s->stationId, false);
+	argv[query.argc++] = json_new_long(sessionId, false);
+
+	e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+
+	if (s->submissionId == 0)
+	{
+		query.insert_id = &s->submissionId;
+		query.sql = "INSERT INTO Submissions (PollingStationId, SessionId, FileId, NumberOfVoters, InvalidVotes) VALUES (?, ?, ?, ?, ?)";
+
+		argv[query.argc++] = json_new_long(file.id, false);
+		argv[query.argc++] = json_new_int(s->numberOfVoters, false);
+		argv[query.argc++] = json_new_int(s->invalidVotes, false);
+	}
+	else
+	{
+		query.sql = "UPDATE Submissions SET FileId = ?, NumberOfVoters = ?, InvalidVotes = ? WHERE Id = ?";
+		query.argc = 0;
+		argv[query.argc++] = json_new_long(file.id, false);
+		argv[query.argc++] = json_new_int(s->numberOfVoters, false);
+		argv[query.argc++] = json_new_int(s->invalidVotes, false);
+		argv[query.argc++] = json_new_long(s->submissionId, false);
+	}
+
+	e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+	return e;
+}
+
+static errno_t save_submitted_votes(Charray *buffer, struct submit *s, struct results *res, unsigned int candidates)
+{
+	DbQuery query = {.dbc = &s->c->dbc};
+	query.sql = "INSERT INTO SubmittedVotes (SubmissionId, CandidateId, Votes) VALUES (?, ?, ?)";
+	query.argc = 3;
+
+	JsonValue argv[3 * 80];
+	while (query.rows < candidates)
+	{
+		unsigned int k = query.rows++;
+		argv[k * 3 + 0] = json_new_long(s->submissionId, false);
+		argv[k * 3 + 1] = json_new_int(res[k].candidateId, false);
+		argv[k * 3 + 2] = json_new_int(res[k].votes, false);
+	}
+
+	errno_t e = sql_exec(&query, argv);
+	if (ISERR(e))
+	{
+		bprintf(buffer, tl("SQL error"));
+		return e;
+	}
+	return e;
+}
+
+apr_status_t save_voting_results(HttpContext *c, int electionId)
+{
+	apr_status_t status = get_request_body(c);
+	if (status != OK)
+		return status;
+
+	status = ensure_session_exists(c); // should come second
+	if (status != OK)
+		return status;
+
+	struct results result[80];
+	unsigned int candidates = 0;
+	struct submit s = {.c = c};
 	FormData fd;
 	while (true)
 	{
@@ -54,15 +243,31 @@ apr_status_t save_voting_results(HttpContext *c, int elecId)
 		KVP_TO_STR(x, s.pollingStation, "pollingStation");
 
 		KVP_TO_INT(x, s.numberOfVoters, "numberOfVoters");
-		KVP_TO_INT(x, s.invalidVoters, "invalidVoters");
+		KVP_TO_INT(x, s.invalidVotes, "invalidVotes");
 
-		if (str_starts_with(x.key, "candidate_", 0) && candidates < SIZEOF(res))
+		if (str_starts_with(x.key, "candidate_", 0) && candidates < SIZEOF(result))
 		{
-			res[candidates].candidateId = atoi(x.key + 10);
-			KVP_TO_INT(x, res[candidates].votes, x.value);
+			result[candidates].candidateId = str_to_int(x.key + 10);
+			result[candidates].votes = str_to_int(x.value);
 			candidates++;
 		}
 	}
 
-	return OK;
+	char buf[1024];
+	Charray buffer = buffer_to_char_array(buf, sizeof(buf));
+
+	errno_t e = get_polling_center(&buffer, &s, electionId);
+	if (e == OK)
+		e = get_polling_station(&buffer, &s);
+
+	if (e == OK)
+		e = save_submission(&buffer, &s);
+
+	if (e == OK)
+		e = save_submitted_votes(&buffer, &s, result, candidates);
+
+	if (ISERR(e))
+		return http_problem(c, NULL, array_to_str(&buffer), errno_to_status_code(e));
+
+	return HTTP_NO_CONTENT;
 }

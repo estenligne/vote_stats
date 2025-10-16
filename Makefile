@@ -28,7 +28,8 @@ WARN_TO_ERROR =\
 	-Werror=implicit-int \
 	-Wincompatible-pointer-types \
 	-Wstrict-prototypes \
-	-Werror=strict-prototypes
+	-Werror=strict-prototypes \
+	-Werror=incompatible-pointer-types
 
 SECURITY_FLAGS =\
 	-Wformat \

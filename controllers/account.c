@@ -45,7 +45,7 @@ apr_status_t ensure_session_exists(HttpContext *c)
 	if (sql_exec(&query, argv) != 0)
 		return http_problem(c, NULL, tl("Failed to create user entry"), HTTP_INTERNAL_SERVER_ERROR);
 
-	query.sql = "INSERb INTO `Sessions` (Id, UserId, IPAddress) VALUES (?, ?, ?);";
+	query.sql = "INSERT INTO `Sessions` (Id, UserId, IPAddress) VALUES (?, ?, ?);";
 	query.argc = 0;
 	argv[query.argc++] = json_new_long(sessionId, false);
 	argv[query.argc++] = json_new_long(userId, false);

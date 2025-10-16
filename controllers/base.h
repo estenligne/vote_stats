@@ -8,6 +8,8 @@
 void register_account_controller(void);
 void register_home_controller(void);
 
+apr_status_t ensure_session_exists(HttpContext *c);
+
 apr_status_t save_voting_results(HttpContext *c, int elecId);
 
 #endif

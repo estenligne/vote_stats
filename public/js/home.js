@@ -20,7 +20,7 @@ function setData(data) {
 		tag: "tr",
 		content: [
 			{ html: x.name },
-			{ html: x.party },
+			{ text: x.party },
 			{ html: x.votes },
 			{ html: sum ? (x.votes * 100 / sum).toFixed(2) : null }
 		]
@@ -35,7 +35,7 @@ function setData(data) {
 			{ tag: "th", html: "%" }
 		]
 	});
-	
+
 	results.push({
 		tag: "tr",
 		style: "font-weight: bold",
@@ -113,7 +113,7 @@ async function openHomePage() {
 		{
 			tag: "select", class: "app-language",
 			props: { value: currentLanguage },
-			events: { "change": (e) => changeLanguage(e.target.value)},
+			events: { "change": (e) => changeLanguage(e.target.value) },
 			content: [
 				{ value: "en", html: "EN" },
 				{ value: "fr", html: "FR" }
