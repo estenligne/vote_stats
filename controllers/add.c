@@ -2,6 +2,7 @@
 
 #define SIZEOF(x) (sizeof(x) / sizeof((x)[0]))
 
+static inline bool FINE(errno_t e) { return e == 0; }
 static inline bool ISERR(errno_t e) { return e != 0; }
 static inline errno_t ASERR(int e) { return e; }
 
@@ -32,17 +33,113 @@ struct results
 	int votes;
 };
 
+struct location
+{
+	row_id_t countryId, regionId, departmentId, districtId;
+};
+
+static errno_t location_callback(DbResult r)
+{
+	CHECK_SQL_CALLBACK(4);
+	struct location *loc = r.context;
+	loc->countryId = str_to_long(r.argv[0]);
+	loc->regionId = str_to_long(r.argv[1]);
+	loc->departmentId = str_to_long(r.argv[2]);
+	loc->districtId = str_to_long(r.argv[3]);
+	return OK;
+}
+
+enum StringNormalizeOptions
+{
+	StringNormalize_Lowercase,
+	StringNormalize_Uppercase,
+	StringNormalize_Capitalize,
+};
+
+void str_normalize(char *output, size_t capacity, const char *input, enum StringNormalizeOptions options)
+{
+	(void)options;
+	str_copy(output, capacity, input);
+}
+
+static errno_t _sql_exec(DbQuery *query, JsonValue *argv, Charray *buffer)
+{
+	errno_t e = sql_exec(query, argv);
+	if (ISERR(e))
+		bprintf(buffer, tl("SQL error"));
+	return e;
+}
+
+static errno_t get_station_location(Charray *buffer, struct submit *s, int electionId)
+{
+	DbQuery query = {.dbc = &s->c->dbc};
+	query.sql =
+		"SELECT co.Id, re.Id, de.Id, di.Id\n"
+		"FROM Elections el\n"
+		"JOIN Locations co ON co.Id = el.CountryId AND el.Id = ?\n"
+		"JOIN Locations re ON re.ParentId = co.Id AND re.Name = ?\n"
+		"LEFT JOIN Locations de ON de.ParentId = re.Id AND de.Name = ?\n"
+		"LEFT JOIN Locations di ON di.ParentId = de.Id AND di.Name = ?\n";
+
+	struct location loc = {0};
+	query.callback = location_callback;
+	query.callback_context = &loc;
+
+	JsonValue argv[5];
+	argv[query.argc++] = json_new_int(electionId, false);
+	argv[query.argc++] = json_new_str(s->region, false);
+	argv[query.argc++] = json_new_str(s->department, false);
+	argv[query.argc++] = json_new_str(s->district, false);
+
+	errno_t e;
+	if (ISERR(e = _sql_exec(&query, argv, buffer)))
+		return e;
+
+	assert(loc.regionId != 0);
+	s->locationId = loc.regionId;
+
+	char name[128];
+	enum StringNormalizeOptions opt = StringNormalize_Capitalize;
+	query.sql = "INSERT INTO Locations (Type, ParentId, Name) VALUES (?, ?, ?)";
+
+	if (loc.departmentId == 0)
+	{
+		str_normalize(name, sizeof(name), s->department, opt);
+		query.insert_id = &loc.departmentId;
+
+		query.argc = 0;
+		argv[query.argc++] = json_new_int(LocationType_Department, false);
+		argv[query.argc++] = json_new_long(loc.regionId, false);
+		argv[query.argc++] = json_new_str(name, false);
+
+		if (ISERR(e = _sql_exec(&query, argv, buffer)))
+			return e;
+		s->locationId = loc.departmentId;
+	}
+
+	if (loc.districtId == 0)
+	{
+		str_normalize(name, sizeof(name), s->district, opt);
+		query.insert_id = &loc.districtId;
+
+		query.argc = 0;
+		argv[query.argc++] = json_new_int(LocationType_District, false);
+		argv[query.argc++] = json_new_long(loc.departmentId, false);
+		argv[query.argc++] = json_new_str(name, false);
+
+		if (ISERR(e = _sql_exec(&query, argv, buffer)))
+			return e;
+		s->locationId = loc.districtId;
+	}
+
+	return ASERR(OK);
+}
+
 static errno_t int_result_callback(DbResult r)
 {
 	CHECK_SQL_CALLBACK(1);
 	int *id = r.context;
 	*id = str_to_int(r.argv[0]);
-	return OK;
-}
-
-static errno_t get_station_location(Charray *buffer, struct submit *s)
-{
-	s->locationId = 2;
 	return OK;
 }
 
@@ -104,10 +201,6 @@ static errno_t get_polling_station(Charray *buffer, struct submit *s)
 		return OK;
 
 	query.sql = "INSERT INTO PollingStations (PollingCenterId, Name, LocationId) VALUES (?, ?, ?)";
-
-	e = get_station_location(buffer, s);
-	if (ISERR(e))
-		return e;
 	argv[query.argc++] = json_new_long(s->locationId, false);
 
 	query.callback = NULL;
@@ -257,13 +350,17 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 	Charray buffer = buffer_to_char_array(buf, sizeof(buf));
 
 	errno_t e = get_polling_center(&buffer, &s, electionId);
-	if (e == OK)
+
+	if (FINE(e))
+		e = get_station_location(&buffer, &s, electionId);
+
+	if (FINE(e))
 		e = get_polling_station(&buffer, &s);
 
-	if (e == OK)
+	if (FINE(e))
 		e = save_submission(&buffer, &s);
 
-	if (e == OK)
+	if (FINE(e))
 		e = save_submitted_votes(&buffer, &s, result, candidates);
 
 	if (ISERR(e))
