@@ -19,7 +19,7 @@ function submitForm(e) {
 				showProblemDetail(response);
 			}
 			else {
-				toast("Data submitted", 1);
+				toast("Data submitted", 2);
 				window.history.back();
 			}
 		});
@@ -91,10 +91,14 @@ async function openAddPage(data) {
 	];
 	updateElement(page, { content });
 
-	data.regions = [
-		"", "Adamaoua", "Centre", "Est", "Extrême-Nord", "Littoral",
-		"Nord", "Nord-Ouest", "Ouest", "Sud", "Sud-Ouest", "Abroad"
-	].map((x) => ({ value: x, text: x }));
+	const regions = [{ value: "", text: "", hidden: true }];
+	const regionIds = data.locations[data.countryId].children;
+
+	for (let i = 0; i < regionIds.length; i++) {
+		const id = regionIds[i];
+		const name = data.locations[id].name;
+		regions.push({ value: id, text: name });
+	};
 
 	const candidates = [];
 	data.candidates.forEach((c) => {
@@ -110,7 +114,7 @@ async function openAddPage(data) {
 
 	const form_content = [
 		{ tag: "label", for: "form-region", text: "Region" },
-		{ tag: "select", id: "form-region", name: "region", class: "form-control", required: true, content: data.regions },
+		{ tag: "select", id: "form-region", name: "region", class: "form-control", required: true, content: regions },
 
 		{ tag: "label", for: "department", text: "Department" },
 		{ tag: "input", id: "department", name: "department", class: "form-control", required: true, maxlength: "127" },
