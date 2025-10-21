@@ -7,7 +7,7 @@ enum LocationType
 	LocationType_Continent = 1,
 	LocationType_Country = 2,
 	LocationType_Region = 3,
-	LocationType_Department = 4,
+	LocationType_Division = 4,
 	LocationType_District = 5,
 	LocationType_City = 6,
 };

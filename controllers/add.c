@@ -9,8 +9,8 @@ static inline errno_t ASERR(int e) { return e; }
 struct submit
 {
 	HttpContext *c;
-	const char *region;
-	const char *department;
+	row_id_t region;
+	const char *division;
 	const char *district;
 
 	int centerNumber;
@@ -35,7 +35,7 @@ struct results
 
 struct location
 {
-	row_id_t countryId, regionId, departmentId, districtId;
+	row_id_t countryId, regionId, divisionId, districtId;
 };
 
 static errno_t location_callback(DbResult r)
@@ -44,7 +44,7 @@ static errno_t location_callback(DbResult r)
 	struct location *loc = r.context;
 	loc->countryId = str_to_long(r.argv[0]);
 	loc->regionId = str_to_long(r.argv[1]);
-	loc->departmentId = str_to_long(r.argv[2]);
+	loc->divisionId = str_to_long(r.argv[2]);
 	loc->districtId = str_to_long(r.argv[3]);
 	return OK;
 }
@@ -77,7 +77,7 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 		"SELECT co.Id, re.Id, de.Id, di.Id\n"
 		"FROM Elections el\n"
 		"JOIN Locations co ON co.Id = el.CountryId AND el.Id = ?\n"
-		"JOIN Locations re ON re.ParentId = co.Id AND re.Name = ?\n"
+		"JOIN Locations re ON re.ParentId = co.Id AND re.Id = ?\n"
 		"LEFT JOIN Locations de ON de.ParentId = re.Id AND de.Name = ?\n"
 		"LEFT JOIN Locations di ON di.ParentId = de.Id AND di.Name = ?\n";
 
@@ -87,34 +87,36 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 
 	JsonValue argv[5];
 	argv[query.argc++] = json_new_int(electionId, false);
-	argv[query.argc++] = json_new_str(s->region, false);
-	argv[query.argc++] = json_new_str(s->department, false);
+	argv[query.argc++] = json_new_long(s->region, false);
+	argv[query.argc++] = json_new_str(s->division, false);
 	argv[query.argc++] = json_new_str(s->district, false);
 
 	errno_t e;
 	if (ISERR(e = _sql_exec(&query, argv, buffer)))
 		return e;
 
-	assert(loc.regionId != 0);
-	s->locationId = loc.regionId;
+	if (loc.regionId == 0) // cannot be false
+	{
+		APP_LOG(LOG_ERROR, "Got loc.regionId == 0. How comes?!");
+		return EINVAL;
+	}
 
 	char name[128];
 	enum StringNormalizeOptions opt = StringNormalize_Capitalize;
 	query.sql = "INSERT INTO Locations (Type, ParentId, Name) VALUES (?, ?, ?)";
 
-	if (loc.departmentId == 0)
+	if (loc.divisionId == 0)
 	{
-		str_normalize(name, sizeof(name), s->department, opt);
-		query.insert_id = &loc.departmentId;
+		str_normalize(name, sizeof(name), s->division, opt);
+		query.insert_id = &loc.divisionId;
 
 		query.argc = 0;
-		argv[query.argc++] = json_new_int(LocationType_Department, false);
+		argv[query.argc++] = json_new_int(LocationType_Division, false);
 		argv[query.argc++] = json_new_long(loc.regionId, false);
 		argv[query.argc++] = json_new_str(name, false);
 
 		if (ISERR(e = _sql_exec(&query, argv, buffer)))
 			return e;
-		s->locationId = loc.departmentId;
 	}
 
 	if (loc.districtId == 0)
@@ -124,14 +126,14 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 
 		query.argc = 0;
 		argv[query.argc++] = json_new_int(LocationType_District, false);
-		argv[query.argc++] = json_new_long(loc.departmentId, false);
+		argv[query.argc++] = json_new_long(loc.divisionId, false);
 		argv[query.argc++] = json_new_str(name, false);
 
 		if (ISERR(e = _sql_exec(&query, argv, buffer)))
 			return e;
-		s->locationId = loc.districtId;
 	}
 
+	s->locationId = loc.districtId;
 	return ASERR(OK);
 }
 
@@ -327,8 +329,8 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 		if (str_equal_ci(x.key, "resultsDocument"))
 			s.resultsDocument = fd;
 
-		KVP_TO_STR(x, s.region, "region");
-		KVP_TO_STR(x, s.department, "department");
+		KVP_TO_LONG(x, s.region, "region");
+		KVP_TO_STR(x, s.division, "division");
 		KVP_TO_STR(x, s.district, "district");
 
 		KVP_TO_INT(x, s.centerNumber, "centerNumber");

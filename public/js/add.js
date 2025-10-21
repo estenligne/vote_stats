@@ -116,8 +116,8 @@ async function openAddPage(data) {
 		{ tag: "label", for: "form-region", text: "Region" },
 		{ tag: "select", id: "form-region", name: "region", class: "form-control", required: true, content: regions },
 
-		{ tag: "label", for: "department", text: "Department" },
-		{ tag: "input", id: "department", name: "department", class: "form-control", required: true, maxlength: "127" },
+		{ tag: "label", for: "division", text: "Division" },
+		{ tag: "input", id: "division", name: "division", class: "form-control", required: true, maxlength: "127" },
 
 		{ tag: "label", for: "district", text: "District" },
 		{ tag: "input", id: "district", name: "district", class: "form-control", required: true, maxlength: "127" },
@@ -131,8 +131,7 @@ async function openAddPage(data) {
 		{ tag: "label", for: "pollingStation", text: "Polling Station" },
 		{ tag: "input", id: "pollingStation", name: "pollingStation", class: "form-control", required: true, maxlength: "15" },
 
-		{ tag: "span" },
-		{ tag: "i", text: "Upload a .pdf, .zip or .tar.gz file" },
+		{ tag: "i", text: "Upload a .pdf, .zip or .tar.gz file", style: "grid-column: 1 / span 2" },
 
 		{ tag: "label", for: "resultsDocument", text: "Results Document" },
 		{

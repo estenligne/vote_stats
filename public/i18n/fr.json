@@ -1,5 +1,6 @@
 {
 	"AI": "IA",
+	"All": "Tous",
 	"Login": "Se connecter",
 	"Create an anonymous account": "Créer un compte anonyme",
 	"Username": "Nom d'utilisateur",
@@ -20,7 +21,7 @@
 	"Abroad": "À l'étranger",
 	"Cameroon": "Cameroun",
 	"Region": "Région",
-	"Department": "Departement",
+	"Division": "Departement",
 	"District": "Arrondissement",
 	"Election Type": "Type d'élection",
 	"Election Year": "Année électorale",
