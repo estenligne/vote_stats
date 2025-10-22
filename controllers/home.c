@@ -70,10 +70,15 @@ static errno_t get_locations_callback(DbResult r)
 	return 0;
 }
 
-struct elec_info
+struct url_args
 {
 	HttpContext *c;
 	int id;
+	row_id_t regionId, divisionId, districtId;
+};
+
+struct elec_info
+{
 	char title[128];
 	char description[1024];
 	row_id_t countryId;
@@ -88,9 +93,12 @@ static errno_t elec_info_callback(DbResult r)
 	return 0;
 }
 
-static apr_status_t get_election_title(struct elec_info *elec)
+static apr_status_t get_election_title(struct url_args *elec, struct elec_info *info)
 {
-	strcpy(elec->title, "Vote Stats");
+	strcpy(info->title, "Vote Stats");
+	info->description[0] = '\0';
+	info->countryId = 0;
+
 	if (elec->id == 0)
 		return OK;
 
@@ -98,7 +106,7 @@ static apr_status_t get_election_title(struct elec_info *elec)
 	query.sql = "select Title, Description, CountryId from Elections where Id = ?";
 
 	query.callback = elec_info_callback;
-	query.callback_context = elec;
+	query.callback_context = info;
 
 	JsonValue argv[1];
 	argv[query.argc++] = json_new_int(elec->id, false);
@@ -109,17 +117,16 @@ static apr_status_t get_election_title(struct elec_info *elec)
 	return OK;
 }
 
-static void get_election_id(struct elec_info *elec)
+static void get_election_id(struct url_args *elec)
 {
-	elec->id = 0;
-	elec->title[0] = '\0';
-	elec->description[0] = '\0';
-
 	Charray *args = &elec->c->request_args;
 	KeyValuePair x;
 	while((x = get_next_url_query_argument(args, '&', true)).key != NULL)
 	{
 		KVP_TO_INT(x, elec->id, "id");
+		KVP_TO_LONG(x, elec->regionId, "regionId");
+		KVP_TO_LONG(x, elec->divisionId, "divisionId");
+		KVP_TO_LONG(x, elec->districtId, "districtId");
 	}
 }
 
@@ -131,29 +138,44 @@ static apr_status_t get_home_info(HttpContext *c)
 
 	char buf[1024];
 
-	struct elec_info elec;
-	elec.c = c;
+	struct url_args elec = {.c = c};
 	get_election_id(&elec);
 
-	apr_status_t status = get_election_title(&elec);
+	struct elec_info info;
+	apr_status_t status = get_election_title(&elec, &info);
 	if (status != OK) return status;
 
 	vm_add_number(c, "id", elec.id, 0);
-	vm_add(c, "title", elec.title, 0);
+	vm_add(c, "title", info.title, 0);
 
-	vm_add_number(c, "countryId", (double)elec.countryId, 0);
+	vm_add_number(c, "countryId", (double)info.countryId, 0);
 
 	DbQuery query = {.dbc = &c->dbc};
+
 	query.sql =
 		"select c.Id, c.Name, c.Party, SUM(sv.Votes) as Votes\n"
 		"from Candidates c\n"
 		"left join StationVotes sv on sv.CandidateId = c.Id\n"
-		"where c.ElectionId = ?\n"
+		"left join PollingStations ps on ps.Id = sv.Id\n"
+		"left join Locations as district on district.Id = ps.LocationId\n"
+		"left join Locations as division on division.Id = district.ParentId\n"
+		"left join Locations as region on region.Id = division.ParentId\n"
+		"where c.ElectionId = ? and (0 = ? or region.Id = ? or division.Id = ? or district.Id = ?)\n"
 		"group by c.Id, c.Name\n"
 		"order by Votes desc, Name\n";
 
-	JsonValue argv[1];
+	// the location id
+	row_id_t l =
+		elec.districtId != 0 ? l = elec.districtId :
+		elec.divisionId != 0 ? elec.divisionId :
+		elec.regionId != 0 ? elec.regionId : 0;
+
+	JsonValue argv[6];
 	argv[query.argc++] = json_new_int(elec.id, false);
+	argv[query.argc++] = json_new_long(l, false);
+	argv[query.argc++] = json_new_long(l, false);
+	argv[query.argc++] = json_new_long(l, false);
+	argv[query.argc++] = json_new_long(l, false);
 
 	JsonArray *result = json_new_array();
 	vm_add_node(c, "candidates", result, 0);
@@ -175,8 +197,8 @@ static apr_status_t get_home_info(HttpContext *c)
 		"left join Locations l2 on l2.ParentId = l1.Id\n"
 		"where l0.ParentId = ?\n";
 
-	argv[0] = json_new_long(elec.countryId, false);
-	assert(query.argc == 1);
+	argv[0] = json_new_long(info.countryId, false);
+	query.argc = 1;
 
 	struct get_locations x = {0};
 	x.ids = &c->request_body;
@@ -185,7 +207,7 @@ static apr_status_t get_home_info(HttpContext *c)
 	x.locations = json_new_object();
 	vm_add_node(c, "locations", x.locations, 0);
 
-	sprintf(x.parent_id, "%lld", elec.countryId);
+	sprintf(x.parent_id, "%lld", info.countryId);
 	add_to_locations(&x, x.parent_id, NULL, NULL);
 
 	query.callback_context = &x;
@@ -206,18 +228,18 @@ static apr_status_t app_page(HttpContext *c)
 {
 	c->constants.layout_file = NO_LAYOUT_FILE;
 
-	struct elec_info elec;
-	elec.c = c;
+	struct url_args elec = {.c = c};
 	get_election_id(&elec);
 
-	apr_status_t status = get_election_title(&elec);
+	struct elec_info info;
+	apr_status_t status = get_election_title(&elec, &info);
 	if (status != OK) return status;
 
 	JsonObject *og = json_new_object();
 	json_put_string(og, "Type", "website", 0);
 
-	json_put_string(og, "Title", elec.title, 0);
-	set_page_title(c, elec.title);
+	json_put_string(og, "Title", info.title, 0);
+	set_page_title(c, info.title);
 
 	json_put_string(og, "Description", tl("site description"), 0);
 
@@ -234,8 +256,7 @@ static apr_status_t home_page(HttpContext *c)
 
 static apr_status_t voting_results(HttpContext *c)
 {
-	struct elec_info elec;
-	elec.c = c;
+	struct url_args elec = {.c = c};
 	get_election_id(&elec);
 	return save_voting_results(c, elec.id);
 }

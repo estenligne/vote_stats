@@ -8,6 +8,48 @@ import { _fetch, showProblemDetail } from 'fetch';
 let page_content = null;
 let refreshBtn = {};
 
+const filter = {
+	regionId: 0,
+	divisionId: 0,
+	districtId: 0,
+};
+
+function getSelectItems(filters, label, data, parentId, key) {
+	const ids = data.locations[parentId]?.children;
+	if (!ids)
+		return null;
+
+	const events = {
+		change: (e) => {
+			filter[key] = e.target.value;
+
+			if (key == "regionId")
+			{
+				filter.divisionId = 0;
+				filter.districtId = 0;
+			}
+
+			if (key == "divisionId")
+			{
+				filter.districtId = 0;
+			}
+
+			fetchData();
+		}
+	};
+	const content = [{ value: 0, text: "All" }];
+
+	for (let i = 0; i < ids.length; i++) {
+		const id = ids[i];
+		const name = data.locations[id].name;
+		const selected = id == filter[key] ? true : null;
+		content.push({ value: id, text: name, selected });
+	};
+
+	filters.push({ tag: "label", text: label });
+	filters.push({ tag: "select", class: "form-control", content, events });
+}
+
 function setData(data) {
 	if (data == null) {
 		return fetchData();
@@ -47,10 +89,17 @@ function setData(data) {
 		]
 	});
 
+	const filters = [];
+	getSelectItems(filters, "Region", data, data.countryId, "regionId");
+	getSelectItems(filters, "Division", data, filter.regionId, "divisionId");
+	getSelectItems(filters, "District", data, filter.divisionId, "districtId");
+	const filterSection = { tag: "div", class: "form-content", content: filters };
+
 	const content = [
 		{
-			tag: "div", html: data.title
+			tag: "p", html: data.title
 		},
+		filterSection,
 		{
 			tag: "table", class: "vote-results", content: results
 		},
@@ -72,9 +121,15 @@ async function fetchData() {
 	refreshBtn.classList.add("disabled");
 
 	const params = new URLSearchParams(window.location.search);
-	const id = Number(params.get('id')) || 1;
 
-	const response = await _fetch("/api/home-info?id=" + id);
+	if (!params.get('id'))
+		params.set('id', '1');
+
+	params.set('regionId', filter.regionId);
+	params.set('divisionId', filter.divisionId);
+	params.set('districtId', filter.districtId);
+
+	const response = await _fetch("/api/home-info?" + params.toString());
 	const data = await response.json();
 
 	removeToast(busy);
