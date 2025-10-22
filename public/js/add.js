@@ -94,7 +94,7 @@ async function openAddPage(data) {
 	const regions = [{ value: "", text: "", hidden: true }];
 	const regionIds = data.locations[data.countryId].children;
 
-	for (let i = 0; i < regionIds.length; i++) {
+	for (let i = 0; i < regionIds?.length; i++) {
 		const id = regionIds[i];
 		const name = data.locations[id].name;
 		regions.push({ value: id, text: name });
@@ -139,7 +139,7 @@ async function openAddPage(data) {
 			type: "file", accept: "application/pdf,application/zip,application/x-tar,application/gzip"
 		},
 
-		{ tag: "label", for: "numberOfVoters", text: "Number of Voters" },
+		{ tag: "label", for: "numberOfVoters", text: "Number of Registrants" },
 		{ tag: "input", id: "numberOfVoters", name: "numberOfVoters", class: "form-control", required: true, min: "0", type: "number", events: { change: onNumberOfVoters } },
 
 		{ tag: "label", for: "invalidVotes", text: "Invalid Votes" },
