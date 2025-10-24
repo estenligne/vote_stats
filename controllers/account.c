@@ -4,7 +4,7 @@ static errno_t user_query_callback(DbResult r)
 {
 	CHECK_SQL_CALLBACK(1);
 	*(row_id_t *)r.context = str_to_long(r.argv[0]);
-	return 0;
+	return ERR_NONE;
 }
 
 apr_status_t ensure_session_exists(HttpContext *c)
@@ -24,7 +24,7 @@ apr_status_t ensure_session_exists(HttpContext *c)
 	JsonValue argv[4];
 	argv[query.argc++] = json_new_long(sessionId, false);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(c, NULL, tl("Failed to check session existence"), HTTP_INTERNAL_SERVER_ERROR);
 
 	if (userId != 0)
@@ -42,7 +42,7 @@ apr_status_t ensure_session_exists(HttpContext *c)
 	argv[query.argc++] = json_new_long(userId, false);
 	argv[query.argc++] = json_new_int(UserType_Anonymous, false);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(c, NULL, tl("Failed to create user entry"), HTTP_INTERNAL_SERVER_ERROR);
 
 	query.sql = "INSERT INTO `Sessions` (Id, UserId, IPAddress) VALUES (?, ?, ?);";
@@ -51,7 +51,7 @@ apr_status_t ensure_session_exists(HttpContext *c)
 	argv[query.argc++] = json_new_long(userId, false);
 	argv[query.argc++] = json_new_str(ip_addr, true);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(c, NULL, tl("Failed to recreate user session"), HTTP_INTERNAL_SERVER_ERROR);
 
 	APP_LOG(LOG_INFO, "Recreated session %lld for user %lld", sessionId, userId);
@@ -73,7 +73,7 @@ static apr_status_t anonymous_login(HttpContext *c, const char *password, Access
 	JsonValue argv[3];
 	argv[query.argc++] = json_new_str(password, false);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(c, NULL, tl("Failed to query user"), HTTP_INTERNAL_SERVER_ERROR);
 
 	query.callback = NULL;
@@ -89,7 +89,7 @@ static apr_status_t anonymous_login(HttpContext *c, const char *password, Access
 
 		argv[query.argc++] = json_new_int(UserType_Anonymous, false);
 
-		if (sql_exec(&query, argv) != 0)
+		if (!FINE(sql_exec(&query, argv)))
 			return http_problem(c, NULL, tl("Failed to create new user"), HTTP_INTERNAL_SERVER_ERROR);
 	}
 
@@ -101,7 +101,7 @@ static apr_status_t anonymous_login(HttpContext *c, const char *password, Access
 	argv[query.argc++] = json_new_long(userId, false);
 	argv[query.argc++] = json_new_str(ip_addr, true);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(c, NULL, tl("Failed to create new session"), HTTP_INTERNAL_SERVER_ERROR);
 
 	snprintf(auth->sub, sizeof(auth->sub), "%lld", userId);
@@ -156,4 +156,3 @@ void register_account_controller(void)
 	add_endpoint(M_POST, "/api/account/login", login, Endpoint_IsaWebAPI);
 	add_endpoint(M_POST, "/api/account/logout", logout, Endpoint_AuthWebAPI);
 }
-

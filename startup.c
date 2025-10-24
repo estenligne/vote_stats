@@ -4,7 +4,7 @@
 static apr_status_t prepare_database(HttpContext *c)
 {
 	database_apply_migrations(&c->dbc, NULL);
-	return errno_to_status_code(errno);
+	return errno_to_status_code(ERRNO);
 }
 
 /* Called only by the first HTTP request received by the server process. */
@@ -14,7 +14,7 @@ static apr_status_t prepare_process(HttpContext *c)
 	register_account_controller();
 	register_home_controller();
 	register_file_upload_controller();
-	return errno_to_status_code(errno);
+	return errno_to_status_code(ERRNO);
 }
 
 /* The handler function for our module. See module.c */

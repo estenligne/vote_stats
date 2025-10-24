@@ -12,7 +12,7 @@ static errno_t get_votes_callback(DbResult r)
 
 	JsonArray *list = (JsonArray *)r.context;
 	json_array_add(list, item);
-	return 0;
+	return ERR_NONE;
 }
 
 struct get_locations
@@ -67,7 +67,7 @@ static errno_t get_locations_callback(DbResult r)
 	add_to_locations(x, r.argv[2], r.argv[3], r.argv[0]);
 	add_to_locations(x, r.argv[4], r.argv[5], r.argv[2]);
 
-	return 0;
+	return ERR_NONE;
 }
 
 struct url_args
@@ -90,7 +90,7 @@ static errno_t elec_info_callback(DbResult r)
 	str_copy(elec->title, sizeof(elec->title), r.argv[0]);
 	str_copy(elec->description, sizeof(elec->description), r.argv[1]);
 	elec->countryId = str_to_long(r.argv[2]);
-	return 0;
+	return ERR_NONE;
 }
 
 static apr_status_t get_election_title(struct url_args *elec, struct elec_info *info)
@@ -111,7 +111,7 @@ static apr_status_t get_election_title(struct url_args *elec, struct elec_info *
 	JsonValue argv[1];
 	argv[query.argc++] = json_new_int(elec->id, false);
 
-	if (sql_exec(&query, argv) != 0)
+	if (!FINE(sql_exec(&query, argv)))
 		return http_problem(elec->c, NULL, tl("SQL error"), 500);
 
 	return OK;
@@ -121,7 +121,7 @@ static void get_election_id(struct url_args *elec)
 {
 	Charray *args = &elec->c->request_args;
 	KeyValuePair x;
-	while((x = get_next_url_query_argument(args, '&', true)).key != NULL)
+	while ((x = get_next_url_query_argument(args, '&', true)).key != NULL)
 	{
 		KVP_TO_INT(x, elec->id, "id");
 		KVP_TO_LONG(x, elec->regionId, "regionId");
@@ -143,7 +143,8 @@ static apr_status_t get_home_info(HttpContext *c)
 
 	struct elec_info info;
 	apr_status_t status = get_election_title(&elec, &info);
-	if (status != OK) return status;
+	if (status != OK)
+		return status;
 
 	vm_add_number(c, "id", elec.id, 0);
 	vm_add(c, "title", info.title, 0);
@@ -164,11 +165,13 @@ static apr_status_t get_home_info(HttpContext *c)
 		"group by c.Id, c.Name\n"
 		"order by Votes desc, Name\n";
 
+	// clang-format off
 	// the location id
 	row_id_t l =
 		elec.districtId != 0 ? l = elec.districtId :
 		elec.divisionId != 0 ? elec.divisionId :
 		elec.regionId != 0 ? elec.regionId : 0;
+	// clang-format on
 
 	JsonValue argv[6];
 	argv[query.argc++] = json_new_int(elec.id, false);
@@ -184,7 +187,7 @@ static apr_status_t get_home_info(HttpContext *c)
 	query.callback = get_votes_callback;
 
 	errno_t e = sql_exec(&query, argv);
-	if (e != 0)
+	if (!FINE(e))
 	{
 		strcpy(buf, tl("SQL error"));
 		goto finish;
@@ -211,14 +214,14 @@ static apr_status_t get_home_info(HttpContext *c)
 	add_to_locations(&x, x.parent_id, NULL, NULL);
 
 	query.callback_context = &x;
-	query.callback =  get_locations_callback;
+	query.callback = get_locations_callback;
 
 	e = sql_exec(&query, argv);
-	if (e != 0)
+	if (!FINE(e))
 		strcpy(buf, tl("SQL error"));
 
 finish:
-	if (e != 0)
+	if (!FINE(e))
 		return http_problem(c, NULL, buf, 500);
 	else
 		return process_model(c, HTTP_OK);
@@ -233,7 +236,8 @@ static apr_status_t app_page(HttpContext *c)
 
 	struct elec_info info;
 	apr_status_t status = get_election_title(&elec, &info);
-	if (status != OK) return status;
+	if (status != OK)
+		return status;
 
 	JsonObject *og = json_new_object();
 	json_put_string(og, "Type", "website", 0);
@@ -263,7 +267,6 @@ static apr_status_t voting_results(HttpContext *c)
 
 void register_home_controller(void)
 {
-	CHECK_ERRNO;
 	add_endpoint(M_GET, "/", home_page, 0);
 	add_endpoint(M_GET, "/app", app_page, 0);
 	add_endpoint(M_GET, "/api/home-info", get_home_info, Endpoint_AuthWebAPI);

@@ -2,10 +2,6 @@
 
 #define SIZEOF(x) (sizeof(x) / sizeof((x)[0]))
 
-static inline bool FINE(errno_t e) { return e == 0; }
-static inline bool ISERR(errno_t e) { return e != 0; }
-static inline errno_t ASERR(int e) { return e; }
-
 struct submit
 {
 	HttpContext *c;
@@ -46,7 +42,7 @@ static errno_t location_callback(DbResult r)
 	loc->regionId = str_to_long(r.argv[1]);
 	loc->divisionId = str_to_long(r.argv[2]);
 	loc->districtId = str_to_long(r.argv[3]);
-	return OK;
+	return ERR_NONE;
 }
 
 enum StringNormalizeOptions
@@ -65,7 +61,7 @@ void str_normalize(char *output, size_t capacity, const char *input, enum String
 static errno_t _sql_exec(DbQuery *query, JsonValue *argv, Charray *buffer)
 {
 	errno_t e = sql_exec(query, argv);
-	if (ISERR(e))
+	if (!FINE(e))
 		bprintf(buffer, tl("SQL error"));
 	return e;
 }
@@ -91,14 +87,14 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 	argv[query.argc++] = json_new_str(s->division, false);
 	argv[query.argc++] = json_new_str(s->district, false);
 
-	errno_t e;
-	if (ISERR(e = _sql_exec(&query, argv, buffer)))
+	errno_t e = _sql_exec(&query, argv, buffer);
+	if (!FINE(e))
 		return e;
 
 	if (loc.regionId == 0) // cannot be false
 	{
 		APP_LOG(LOG_ERROR, "Got loc.regionId == 0. How comes?!");
-		return EINVAL;
+		return ERR_INVAL;
 	}
 
 	char name[128];
@@ -115,7 +111,8 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 		argv[query.argc++] = json_new_long(loc.regionId, false);
 		argv[query.argc++] = json_new_str(name, false);
 
-		if (ISERR(e = _sql_exec(&query, argv, buffer)))
+		e = _sql_exec(&query, argv, buffer);
+		if (!FINE(e))
 			return e;
 	}
 
@@ -129,12 +126,13 @@ static errno_t get_station_location(Charray *buffer, struct submit *s, int elect
 		argv[query.argc++] = json_new_long(loc.divisionId, false);
 		argv[query.argc++] = json_new_str(name, false);
 
-		if (ISERR(e = _sql_exec(&query, argv, buffer)))
+		e = _sql_exec(&query, argv, buffer);
+		if (!FINE(e))
 			return e;
 	}
 
 	s->locationId = loc.districtId;
-	return ASERR(OK);
+	return ERR_NONE;
 }
 
 static errno_t int_result_callback(DbResult r)
@@ -142,7 +140,7 @@ static errno_t int_result_callback(DbResult r)
 	CHECK_SQL_CALLBACK(1);
 	int *id = r.context;
 	*id = str_to_int(r.argv[0]);
-	return OK;
+	return ERR_NONE;
 }
 
 static errno_t get_polling_center(Charray *buffer, struct submit *s, int electionId)
@@ -156,15 +154,12 @@ static errno_t get_polling_center(Charray *buffer, struct submit *s, int electio
 	argv[query.argc++] = json_new_int(electionId, false);
 	argv[query.argc++] = json_new_int(s->centerNumber, false);
 
-	errno_t e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
+	errno_t e = _sql_exec(&query, argv, buffer);
+	if (!FINE(e))
 		return e;
-	}
 
 	if (s->centerId != 0)
-		return OK;
+		return ERR_NONE;
 
 	query.sql = "INSERT INTO PollingCenters (ElectionId, Number, Name) VALUES (?, ?, ?)";
 	argv[query.argc++] = json_new_str(s->pollingCenter, false);
@@ -172,12 +167,7 @@ static errno_t get_polling_center(Charray *buffer, struct submit *s, int electio
 	query.callback = NULL;
 	query.int_insert_id = &s->centerId;
 
-	e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
-		return e;
-	}
+	e = _sql_exec(&query, argv, buffer);
 	return e;
 }
 
@@ -192,15 +182,12 @@ static errno_t get_polling_station(Charray *buffer, struct submit *s)
 	argv[query.argc++] = json_new_int(s->centerId, false);
 	argv[query.argc++] = json_new_str(s->pollingStation, false);
 
-	errno_t e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
+	errno_t e = _sql_exec(&query, argv, buffer);
+	if (!FINE(e))
 		return e;
-	}
 
 	if (s->stationId != 0)
-		return OK;
+		return ERR_NONE;
 
 	query.sql = "INSERT INTO PollingStations (PollingCenterId, Name, LocationId) VALUES (?, ?, ?)";
 	argv[query.argc++] = json_new_long(s->locationId, false);
@@ -208,12 +195,7 @@ static errno_t get_polling_station(Charray *buffer, struct submit *s)
 	query.callback = NULL;
 	query.int_insert_id = &s->stationId;
 
-	e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
-		return e;
-	}
+	e = _sql_exec(&query, argv, buffer);
 	return e;
 }
 
@@ -222,17 +204,17 @@ static errno_t submission_callback(DbResult r)
 	CHECK_SQL_CALLBACK(1);
 	row_id_t *id = r.context;
 	*id = str_to_long(r.argv[0]);
-	return OK;
+	return ERR_NONE;
 }
 
 static errno_t save_submission(Charray *buffer, struct submit *s)
 {
-	errno_t e = OK;
 	row_id_t sessionId = str_to_long(s->c->identity.sid);
 
 	UploadFile file = {.data = s->resultsDocument, .sessionId = sessionId, .folder = "submissions"};
-	e = complete_file_upload(&s->c->dbc, &file, buffer);
-	if (ISERR(e))
+
+	errno_t e = complete_file_upload(&s->c->dbc, &file, buffer);
+	if (!FINE(e))
 		return e;
 
 	DbQuery query = {.dbc = &s->c->dbc};
@@ -245,12 +227,9 @@ static errno_t save_submission(Charray *buffer, struct submit *s)
 	argv[query.argc++] = json_new_int(s->stationId, false);
 	argv[query.argc++] = json_new_long(sessionId, false);
 
-	e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
+	e = _sql_exec(&query, argv, buffer);
+	if (!FINE(e))
 		return e;
-	}
 
 	if (s->submissionId == 0)
 	{
@@ -271,12 +250,7 @@ static errno_t save_submission(Charray *buffer, struct submit *s)
 		argv[query.argc++] = json_new_long(s->submissionId, false);
 	}
 
-	e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
-		return e;
-	}
+	e = _sql_exec(&query, argv, buffer);
 	return e;
 }
 
@@ -295,12 +269,7 @@ static errno_t save_submitted_votes(Charray *buffer, struct submit *s, struct re
 		argv[k * 3 + 2] = json_new_int(res[k].votes, false);
 	}
 
-	errno_t e = sql_exec(&query, argv);
-	if (ISERR(e))
-	{
-		bprintf(buffer, tl("SQL error"));
-		return e;
-	}
+	errno_t e = _sql_exec(&query, argv, buffer);
 	return e;
 }
 
@@ -316,6 +285,8 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 
 	struct results result[80];
 	unsigned int candidates = 0;
+	const unsigned int max = sizeof(result) / sizeof(result[0]);
+
 	struct submit s = {.c = c};
 	FormData fd;
 	while (true)
@@ -340,7 +311,7 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 		KVP_TO_INT(x, s.numberOfVoters, "numberOfVoters");
 		KVP_TO_INT(x, s.invalidVotes, "invalidVotes");
 
-		if (str_starts_with(x.key, "candidate_", 0) && candidates < SIZEOF(result))
+		if (str_starts_with(x.key, "candidate_", 0) && candidates < max)
 		{
 			result[candidates].candidateId = str_to_int(x.key + 10);
 			result[candidates].votes = str_to_int(x.value);
@@ -365,7 +336,7 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 	if (FINE(e))
 		e = save_submitted_votes(&buffer, &s, result, candidates);
 
-	if (ISERR(e))
+	if (!FINE(e))
 		return http_problem(c, NULL, array_to_str(&buffer), errno_to_status_code(e));
 
 	return HTTP_NO_CONTENT;
