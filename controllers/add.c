@@ -62,7 +62,7 @@ static errno_t _sql_exec(DbQuery *query, JsonValue *argv, Charray *buffer)
 {
 	errno_t e = sql_exec(query, argv);
 	if (!FINE(e))
-		bprintf(buffer, tl("SQL error"));
+		bprintf(buffer, tl("SQL error"), NULL);
 	return e;
 }
 
@@ -320,7 +320,7 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 	}
 
 	char buf[1024];
-	Charray buffer = buffer_to_char_array(buf, sizeof(buf));
+	Charray buffer = buffer_to_charray(buf, sizeof(buf));
 
 	errno_t e = get_polling_center(&buffer, &s, electionId);
 
@@ -337,7 +337,7 @@ apr_status_t save_voting_results(HttpContext *c, int electionId)
 		e = save_submitted_votes(&buffer, &s, result, candidates);
 
 	if (!FINE(e))
-		return http_problem(c, NULL, array_to_str(&buffer), errno_to_status_code(e));
+		return http_problem(c, NULL, charray_to_str(&buffer), errno_to_status_code(e));
 
 	return HTTP_NO_CONTENT;
 }

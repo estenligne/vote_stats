@@ -34,11 +34,11 @@ static void add_to_locations(struct get_locations *x, const char *id, const char
 	item = json_new_object();
 	json_put_string(item, "name", name, 0);
 
-	char *key = array_to_str(x->ids) + x->ids->length;
+	char *key = charray_to_str(x->ids) + x->ids->length;
 	charray_append(x->ids, NS(id));
 
 	if (key == NULL) // if was first time
-		key = array_to_str(x->ids);
+		key = charray_to_str(x->ids);
 
 	json_put_node(x->locations, key, item, 0);
 
@@ -205,7 +205,7 @@ static apr_status_t get_home_info(HttpContext *c)
 
 	struct get_locations x = {0};
 	x.ids = &c->request_body;
-	clear_char_array(x.ids);
+	charray_clear(x.ids);
 
 	x.locations = json_new_object();
 	vm_add_node(c, "locations", x.locations, 0);
