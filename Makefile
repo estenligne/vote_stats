@@ -78,8 +78,11 @@ clean:
 
 SO_FILE = $(OUT_DIR)mod_$(SITE_NAME).so
 
-$(SO_FILE): $(OUTPUT_FILE) $(LIBWEB_A) $(LIBAPP_A) module.c
-	$(CC) --shared -fPIC $(APACHE_DIRS) -DSITE_NAME=$(SITE_NAME) module.c $(OUTPUT_FILE) $(LIBWEB_A) $(LIBAPP_A) -lmysqlclient -lcrypto -lcurl -o $(SO_FILE)
+$(OUT_DIR)module.o: $(LIBWEB)module.c $(INCLUDE_FILES)
+	$(CC) $(CC_FLAGS) -DSITE_NAME=$(SITE_NAME) -c -o $@ $< -fvisibility=default
+
+$(SO_FILE): $(OUTPUT_FILE) $(LIBWEB_A) $(LIBAPP_A) $(OUT_DIR)module.o
+	$(CC) --shared $(OUT_DIR)module.o $(OUTPUT_FILE) $(LIBWEB_A) $(LIBAPP_A) -lmysqlclient -lcrypto -lcurl -o $(SO_FILE)
 
 # Check against an unresolved symbol
 $(VALID): $(SO_FILE)
