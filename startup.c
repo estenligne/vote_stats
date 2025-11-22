@@ -21,7 +21,8 @@ apr_status_t http_request_handler(const module_rec *m, request_rec *r)
 	http_context_init(c, m, r, NULL);
 
 	// below must come right after above
-	c->dbc = db_context_init(DBMS_MySQL, NULL);
+	c->dbc.dbms = DBMS_MySQL;
+	db_context_init(&c->dbc);
 
 	startup_init(c, prepare_database, prepare_process);
 
@@ -36,9 +37,10 @@ apr_status_t http_request_handler(const module_rec *m, request_rec *r)
 	if (status == OK)
 		status = execute_endpoint(c);
 
-	if (0 < status && status < 200) // should never happen
-		APP_LOG(LOG_ERROR, "Invalid status code: %d", status);
+	return http_context_cleanup(c, status);
+}
 
-	http_context_cleanup(c);
-	return status;
+apr_status_t child_process_cleanup(const module_rec *m)
+{
+	return finish_process_cleanup(m, OK);
 }
