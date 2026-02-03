@@ -44,7 +44,7 @@ DEFINITIONS = '-D__LIB__="$(SITE_NAME)"' -D_REENTRANT
 
 APACHE_DIRS ?= -I /usr/include/apache2 -I /usr/include/apr-1.0
 
-INCLUDES_DIRS = -I ~/.local/lib $(APACHE_DIRS) -I $(LIBAPP)src -I $(LIBWEB)src
+INCLUDES_DIRS = -I ~/.local/include $(APACHE_DIRS) -I $(LIBAPP)src -I $(LIBWEB)src
 
 CC_FLAGS = $(BASIC_FLAGS) $(WARN_TO_ERROR) $(SECURITY_FLAGS) \
 	$(ADVANCED_FLAGS) $(DEFINITIONS) $(INCLUDES_DIRS) $(CFLAGS)
