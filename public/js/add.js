@@ -1,6 +1,6 @@
-import { openPage } from 'pages';
-import { toast, newBusyToast, removeToast, updateElement } from 'spart';
-import { _fetch, sendForm, showProblemDetail } from 'fetch';
+import { openPage } from 'spart/pages';
+import { toast, newBusyToast, removeToast, updateElement } from 'spart/core';
+import { _fetch, sendForm, showProblemDetail } from 'spart/fetch';
 
 function submitForm(e) {
 	if (e.preventDefault) e.preventDefault();

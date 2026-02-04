@@ -1,7 +1,7 @@
-import openPage from 'pages';
+import openPage from 'spart/pages';
 import openHomePage from 'home';
-import { setup, toast, createElement, updateElement } from 'spart';
-import { isAuthenticated, sendParams, showProblemDetail } from 'fetch';
+import { setup, toast, createElement, updateElement } from 'spart/core';
+import { isAuthenticated, sendParams, showProblemDetail } from 'spart/fetch';
 
 function onKeyPressed(e) {
 	if (e.key === 'Enter')

@@ -1,15 +1,15 @@
-importScripts("/spart/sw-caching.js");
+importScripts("/spart/sw/caching.js");
 
 const appAssets = [
 	"/app",
 	"/favicon.ico",
 	"/icons/logo-192x192.png",
 	"/icons/logo-512x512.png",
-	"/spart/spart.css",
-	"/spart/spart.js",
-	"/spart/fetch.js",
-	"/spart/pages.js",
-	"/spart/i18n.js",
+	"/spart/css/spart.css",
+	"/spart/js/spart.js",
+	"/spart/js/fetch.js",
+	"/spart/js/pages.js",
+	"/spart/js/i18n.js",
 	"/lib/bootstrap/bootstrap.min.css",
 	"/lib/bootstrap/bootstrap.bundle.min.js",
 	"/lib/bootstrap/bootstrap-icons.min.css",

@@ -1,9 +1,9 @@
 import store from 'store';
-import openPage from 'pages';
+import openPage from 'spart/pages';
 import openAddPage from 'add';
-import { currentLanguage, changeLanguage } from 'i18n';
-import { newBusyToast, removeToast, updateElement } from 'spart';
-import { _fetch, showProblemDetail } from 'fetch';
+import { currentLanguage, changeLanguage } from 'spart/i18n';
+import { newBusyToast, removeToast, updateElement } from 'spart/core';
+import { _fetch, showProblemDetail } from 'spart/fetch';
 
 let page_content = null;
 let refreshBtn = {};
