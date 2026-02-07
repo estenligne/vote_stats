@@ -46,6 +46,8 @@
 	"Absents Voters": "Votants Absents",
 	"Total Votes": "Total des Votes",
 	"Upload a .pdf, .zip or .tar.gz file": "Téléversez un fichier .pdf, .zip ou .tar.gz",
-	"Failed to copy the message": "Échec de la copie du message",
+	"Share the app": "Partager l'application",
+	"Sharing is not supported. Text copied instead.": "Le partage n'est pas pris en charge. Le texte a été copié.",
+	"Failed to copy": "Échec de la copie",
 	"An error has occurred": "Une erreur s’est produite"
 }
