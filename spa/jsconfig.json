@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"spart/*": [
+				"../../spart/*"
+			]
+		}
+	},
+	"include": [
+		"./**/*.js"
+	]
+}

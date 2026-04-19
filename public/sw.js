@@ -1,28 +1,17 @@
-importScripts("/spart/sw/caching.js");
+importScripts("/spart-sw/caching.js");
 
 const appAssets = [
 	"/app",
 	"/favicon.ico",
 	"/icons/logo-192x192.png",
 	"/icons/logo-512x512.png",
-	"/spart/css/spart.css",
-	"/spart/js/spart.js",
-	"/spart/js/fetch.js",
-	"/spart/js/pages.js",
-	"/spart/js/i18n.js",
 	"/lib/bootstrap/bootstrap.min.css",
 	"/lib/bootstrap/bootstrap.bundle.min.js",
 	"/lib/bootstrap/bootstrap-icons.min.css",
 	"/lib/bootstrap/fonts/bootstrap-icons.woff",
 	"/lib/bootstrap/fonts/bootstrap-icons.woff2",
-	"/css/login.css",
-	"/css/home.css",
-	"/css/add.css",
-	"/js/store.js",
-	"/js/login.js",
-	"/js/home.js",
-	"/js/add.js",
-	"/js/svg.js",
+	"/build/app.css",
+	"/build/app.js",
 	"/i18n/fr.json",
 	"/i18n/en.json"
 ];

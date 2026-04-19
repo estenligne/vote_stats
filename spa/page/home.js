@@ -1,9 +1,9 @@
-import store from 'store';
-import openPage from 'spart/pages';
-import openAddPage from 'add';
-import { currentLanguage, changeLanguage } from 'spart/i18n';
-import { newBusyToast, removeToast, updateElement } from 'spart/core';
-import { _fetch, showProblemDetail } from 'spart/fetch';
+import store from 'util/store.js';
+import openPage from 'spart/js/pages.js';
+import openAddPage from './add.js';
+import { currentLanguage, changeLanguage } from 'spart/js/i18n.js';
+import { newBusyToast, removeToast, updateElement } from 'spart/js/core.js';
+import { _fetch, showProblemDetail } from 'spart/js/fetch.js';
 
 let page_content = null;
 let refreshBtn = {};
@@ -149,7 +149,7 @@ async function openHomePage() {
 	if (page.childElementCount) {
 		return;
 	}
-	page.addEventListener("page-back", fetchData);
+	page.addEventListener("page-resumed", fetchData);
 	page.classList.add("flex-column");
 
 	const right_items = [
@@ -195,4 +195,3 @@ async function openHomePage() {
 }
 
 export default openHomePage;
-

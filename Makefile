@@ -22,3 +22,7 @@ $(PUB_FILE): $(VALID)
 	tar -czhf $(PUB_FILE) $(SO_FILE) --exclude=.git public views migrations ai i18n .htaccess settings.json
 	scp $(PUB_FILE) vps:
 
+# Also compile the SPA bundle
+debug: spa_bundle
+release: spa_bundle
+

@@ -1,7 +1,7 @@
-import openPage from 'spart/pages';
-import openHomePage from 'home';
-import { setup, toast, createElement, updateElement } from 'spart/core';
-import { isAuthenticated, sendParams, showProblemDetail } from 'spart/fetch';
+import openPage from 'spart/js/pages.js';
+import openHomePage from './home.js';
+import { setup, toast, createElement, updateElement } from 'spart/js/core.js';
+import { isAuthenticated, sendParams, showProblemDetail } from 'spart/js/fetch.js';
 
 function onKeyPressed(e) {
 	if (e.key === 'Enter')

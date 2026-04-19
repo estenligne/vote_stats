@@ -5,7 +5,7 @@
 	--primary-light: #333;
 }
 
-html, body {
+html, body, .spa-container, .spa-page {
 	height: 100%;
 }
 

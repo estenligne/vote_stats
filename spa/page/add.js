@@ -1,6 +1,6 @@
-import { openPage } from 'spart/pages';
-import { toast, newBusyToast, removeToast, updateElement } from 'spart/core';
-import { _fetch, sendForm, showProblemDetail } from 'spart/fetch';
+import { openPage } from 'spart/js/pages.js';
+import { toast, newBusyToast, removeToast, updateElement } from 'spart/js/core.js';
+import { _fetch, sendForm, showProblemDetail } from 'spart/js/fetch.js';
 
 function submitForm(e) {
 	if (e.preventDefault) e.preventDefault();
@@ -177,4 +177,3 @@ async function openAddPage(data) {
 }
 
 export default openAddPage;
-
