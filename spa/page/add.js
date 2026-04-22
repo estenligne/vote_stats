@@ -1,5 +1,6 @@
 import { openPage } from 'spart/js/pages.js';
-import { toast, newBusyToast, removeToast, updateElement } from 'spart/js/core.js';
+import { updateElement } from 'spart/js/core.js';
+import { toast, newBusyToast, removeToast } from 'spart/js/toast.js';
 import { _fetch, sendForm, showProblemDetail } from 'spart/js/fetch.js';
 
 function submitForm(e) {

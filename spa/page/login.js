@@ -1,6 +1,7 @@
 import openPage from 'spart/js/pages.js';
 import openHomePage from './home.js';
-import { setup, toast, createElement, updateElement } from 'spart/js/core.js';
+import toast from 'spart/js/toast.js';
+import { setup, createElement, updateElement } from 'spart/js/core.js';
 import { isAuthenticated, sendParams, showProblemDetail } from 'spart/js/fetch.js';
 
 function onKeyPressed(e) {

@@ -2,7 +2,8 @@ import store from 'util/store.js';
 import openPage from 'spart/js/pages.js';
 import openAddPage from './add.js';
 import { currentLanguage, changeLanguage } from 'spart/js/i18n.js';
-import { newBusyToast, removeToast, updateElement } from 'spart/js/core.js';
+import { newBusyToast, removeToast } from 'spart/js/toast.js';
+import { updateElement } from 'spart/js/core.js';
 import { _fetch, showProblemDetail } from 'spart/js/fetch.js';
 
 let page_content = null;
