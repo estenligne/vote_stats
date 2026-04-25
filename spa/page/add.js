@@ -1,16 +1,24 @@
+/**
+ * @import { HTMLElementInfo } from 'spart/js/core.js'
+ */
 import { openPage } from 'spart/js/pages.js';
 import { updateElement } from 'spart/js/core.js';
 import { toast, newBusyToast, removeToast } from 'spart/js/toast.js';
-import { _fetch, sendForm, showProblemDetail } from 'spart/js/fetch.js';
+import { sendForm, showProblemDetail } from 'spart/js/fetch.js';
 
+/**
+ * @param {MouseEvent} e
+ */
 function submitForm(e) {
 	if (e.preventDefault) e.preventDefault();
 	const busy = newBusyToast();
 
-	const id = e.target.dataset.id;
+	const target = /** @type {HTMLFormElement} */ (e.target);
+
+	const id = target.dataset.id;
 	console.log("Will submit form for election id", id);
 
-	const fd = new FormData(e.target);
+	const fd = new FormData(target);
 	const url = "/api/voting-results?id=" + id;
 
 	sendForm(url, "POST", fd)
@@ -36,19 +44,29 @@ function getBackBtn() {
 	};
 }
 
+/**
+ * @param {HTMLFormElement} form
+ */
 function updateAbsentees(form) {
 	const numberOfVoters = Number(form.querySelector("#numberOfVoters").value);
 	const invalidVotes = Number(form.querySelector("#invalidVotes").value);
 	const totalVotes = Number(form.querySelector("#totalVotes").innerText);
 	const absentees = form.querySelector("#absentees");
 
-	if (numberOfVoters && totalVotes)
-		absentees.textContent = numberOfVoters - (invalidVotes + totalVotes);
+	if (numberOfVoters && totalVotes) {
+		const n = numberOfVoters - (invalidVotes + totalVotes);
+		absentees.textContent = n.toString();
+	}
 	else absentees.textContent = "";
 }
 
+/**
+ * @param {MouseEvent} e
+ */
 function onVotesChanged(e) {
-	const form = e.target.closest('form');
+	const target = /** @type {HTMLFormElement} */ (e.target);
+
+	const form = target.closest('form');
 	const inputs = form.querySelectorAll('input.candidate');
 
 	let total = 0;
@@ -59,13 +77,21 @@ function onVotesChanged(e) {
 	updateAbsentees(form);
 }
 
+/**
+ * @param {MouseEvent} e
+ */
 function onNumberOfVoters(e) {
-	const form = e.target.closest('form');
+	const target = /** @type {HTMLFormElement} */ (e.target);
+	const form = target.closest('form');
 	updateAbsentees(form);
 }
 
+/**
+ * @param {MouseEvent} e
+ */
 function onInvalidVotes(e) {
-	const form = e.target.closest('form');
+	const target = /** @type {HTMLFormElement} */ (e.target);
+	const form = target.closest('form');
 	updateAbsentees(form);
 }
 
@@ -77,6 +103,7 @@ async function openAddPage(data) {
 
 	let page_content = null;
 
+	/** @type {HTMLElementInfo[]} */
 	let content = [
 		{
 			tag: "div", class: "page-header",
@@ -92,13 +119,17 @@ async function openAddPage(data) {
 	];
 	updateElement(page, { content });
 
+	/** @type {HTMLElementInfo[]} */
 	const regions = [{ value: "", text: "", hidden: true }];
 	const regionIds = data.locations[data.countryId].children;
 
 	for (let i = 0; i < regionIds?.length; i++) {
 		const id = regionIds[i];
-		const name = data.locations[id].name;
-		regions.push({ value: id, text: name });
+		const item = {
+			value: id,
+			text: data.locations[id].name
+		};
+		regions.push(item);
 	};
 
 	const candidates = [];
@@ -113,6 +144,7 @@ async function openAddPage(data) {
 		});
 	});
 
+	/** @type {HTMLElementInfo[]} */
 	const form_content = [
 		{ tag: "label", for: "form-region", text: "Region" },
 		{ tag: "select", id: "form-region", name: "region", class: "form-control", required: true, content: regions },
@@ -157,7 +189,7 @@ async function openAddPage(data) {
 
 	content = [{
 		tag: "form",
-		"data-id": data.id,
+		attri: { "data-id": data.id },
 		events: { submit: submitForm },
 		content: [
 			{
@@ -168,7 +200,8 @@ async function openAddPage(data) {
 				tag: "div",
 				style: "text-align: center; margin-top: 1em",
 				content: [{
-					tag: "button", type: "submit",
+					tag: "button",
+					attri: { type: "submit" },
 					class: "btn btn-primary", text: "Submit"
 				}]
 			}
