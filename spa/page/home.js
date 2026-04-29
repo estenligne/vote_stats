@@ -1,5 +1,5 @@
 import store from 'util/store.js';
-import openPage from 'spart/js/pages.js';
+import openPage from 'spart/js/page.js';
 import openAddPage from './add.js';
 import { currentLanguage, changeLanguage } from 'spart/js/i18n.js';
 import { newBusyToast, removeToast } from 'spart/js/toast.js';

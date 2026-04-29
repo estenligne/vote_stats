@@ -4,9 +4,6 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: ['local/.env', '.env'] });
 
-const port = process.env.PORT;
-const baseURL = 'http://localhost:' + port;
-
 export default defineConfig({
 	testDir: './tests',
 	timeout: 30_000,
@@ -14,7 +11,7 @@ export default defineConfig({
 		timeout: 5_000,
 	},
 	use: {
-		baseURL: baseURL,
+		baseURL: process.env.BASE_URL,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',

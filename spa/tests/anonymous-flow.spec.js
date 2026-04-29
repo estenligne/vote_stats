@@ -10,6 +10,9 @@ test('Anonymous user signs in and navigates the pages', async ({ page }) => {
 	const usernameInput = page.locator('#login-username');
 	const passwordInput = page.locator('#login-password');
 
+	await expect(usernameInput).toBeVisible();
+	await expect(usernameInput).toBeVisible();
+
 	await usernameInput.fill('ANO');
 	await passwordInput.fill('A72EB447A2EA4D399B65D0F27C1DF18A');
 

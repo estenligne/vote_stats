@@ -1,7 +1,7 @@
 /**
  * @import { HTMLElementInfo } from 'spart/js/core.js'
  */
-import { openPage } from 'spart/js/pages.js';
+import { openPage } from 'spart/js/page.js';
 import { updateElement } from 'spart/js/core.js';
 import { toast, newBusyToast, removeToast } from 'spart/js/toast.js';
 import { sendForm, showProblemDetail } from 'spart/js/fetch.js';

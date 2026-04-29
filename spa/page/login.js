@@ -2,7 +2,7 @@
  * @import { HTMLElementInfo } from 'spart/js/core.js'
  * @import { SPAConfig } from 'spart/js/core.js'
  */
-import openPage from 'spart/js/pages.js';
+import openPage from 'spart/js/page.js';
 import openHomePage from 'page/home';
 import toast from 'spart/js/toast.js';
 import { setup, createElement, updateElement } from 'spart/js/core.js';
