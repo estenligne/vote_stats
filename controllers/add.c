@@ -62,7 +62,7 @@ static errno_t _sql_exec(DbQuery *query, JsonValue *argv, Charray *buffer)
 {
 	errno_t e = sql_exec(query, argv);
 	if (!FINE(e))
-		bprintf(buffer, tl("SQL error"), NULL);
+		bprintf(buffer, tl("SQL error"));
 	return e;
 }
 
