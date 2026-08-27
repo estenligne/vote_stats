@@ -1,3 +1,7 @@
 <IfModule mod_headers.c>
 	Header set Access-Control-Allow-Origin "*"
+
+	<FilesMatch "^sw\.js$">
+		Header set Cache-Control "no-cache"
+	</FilesMatch>
 </IfModule>

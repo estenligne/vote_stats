@@ -1,6 +1,4 @@
 {
-	"manifest_version": 3,
-	"version": "1.0.0",
 	"name": "Vote Stats",
 	"description": "Contribuez au suivi des élections et découvrez les tendances en temps réel.",
 	"start_url": "/app",
