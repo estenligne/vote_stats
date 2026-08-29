@@ -9,7 +9,7 @@ static errno_t user_query_callback(DbResult r)
 
 apr_status_t ensure_session_exists(HttpContext *c)
 {
-	if (!c->identity.authenticated)
+	if (!c->identity.authenticated_at)
 		return OK; // nothing to validate for unauthenticated users
 
 	row_id_t sessionId = str_to_long(c->identity.sid);
@@ -61,7 +61,7 @@ apr_status_t ensure_session_exists(HttpContext *c)
 static apr_status_t anonymous_login(HttpContext *c, const char *password, AccessIdentity *auth)
 {
 	if (!is_sql_safe(password, 32))
-		return http_problem(c, NULL, tl("Invalid GUID format"), HTTP_BAD_REQUEST);
+		return http_problem(c, NULL, tl("Invalid password provided"), HTTP_BAD_REQUEST);
 
 	row_id_t userId = 0, sessionId = 0;
 	DbQuery query = {.dbc = &c->dbc};
