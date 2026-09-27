@@ -9,19 +9,20 @@ OBJECT_FILES := \
 	$(BUILDDIR)controllers/home.o \
 	$(BUILDDIR)controllers/account.o
 
-SITE_NAME := vote_stats
+MODULE_NAME := vote_stats
 
 INCLUDE_FILES := includes/*.h controllers/*.h
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)controllers/
 
-PUBLISHED_ASSETS := public views migrations i18n .htaccess settings.json
+PUBLISHED_ASSETS := public views migrations i18n settings.json
 publish: publish-with-rsync
 
-include ../libweb/module.mk
+LOCALDIR ?= $(HOME)/.local/
+include $(LOCALDIR)share/web/module.mk
 
-# Also compile the SPA bundle
+# Also bundle the SPA
 debug: spa_bundle
 release: spa_bundle
 
